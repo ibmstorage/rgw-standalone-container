@@ -52,3 +52,18 @@ Priority: existingSecret > openshiftServingCert (auto-named by OCP).
   {{- include "zgw-posix.fullname" . }}-serving-cert
 {{- end -}}
 {{- end -}}
+
+{{/*
+Full image path for the Browser UI container.
+Constructs: registry/repository:tag
+*/}}
+{{- define "zgw-posix.browserUi.image" -}}
+{{- printf "%s/%s:%s" .Values.browserUi.registry.server .Values.browserUi.image.ui.repository .Values.browserUi.image.ui.tag -}}
+{{- end -}}
+
+{{/*
+Name of the image pull secret for the Browser UI.
+*/}}
+{{- define "zgw-posix.browserUi.imagePullSecretName" -}}
+{{- .Values.browserUi.registry.secretName -}}
+{{- end -}}

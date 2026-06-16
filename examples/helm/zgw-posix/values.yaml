@@ -80,3 +80,52 @@ resources:
   limits:
     cpu: 2000m
     memory: 2Gi
+
+# S3 Browser UI with NGINX CORS proxy sidecar
+browserUi:
+  enabled: true
+  replicas: 1
+  
+  # Container registry configuration for the UI image
+  registry:
+    server: cp.stg.icr.io
+    username: ""
+    password: ""
+    secretName: browser-ui-registry-key
+  
+  image:
+    ui:
+      repository: cp/ibm-ceph/object-browser
+      tag: "1.0.0"
+      pullPolicy: IfNotPresent
+    proxy:
+      repository: nginx
+      tag: alpine
+      pullPolicy: IfNotPresent
+
+  resources:
+    ui:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    proxy:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+  
+  proxy:
+    clientMaxBodySize: "5g"
+  
+  ingress:
+    enabled: true
+    className: ""
+    host: object-browser.example.com
+    proxyHost: s3-api.example.com
+    annotations: {}
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
