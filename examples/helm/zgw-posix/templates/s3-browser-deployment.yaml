@@ -1,0 +1,79 @@
+{{- if .Values.browserUi.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "zgw-posix.fullname" . }}-browser-ui
+  labels:
+    {{- include "zgw-posix.labels" . | nindent 4 }}
+    app.kubernetes.io/component: browser-ui
+spec:
+  replicas: {{ .Values.browserUi.replicas }}
+  selector:
+    matchLabels:
+      {{- include "zgw-posix.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: browser-ui
+  template:
+    metadata:
+      labels:
+        {{- include "zgw-posix.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: browser-ui
+    spec:
+      imagePullSecrets:
+        - name: {{ include "zgw-posix.browserUi.imagePullSecretName" . }}
+      containers:
+      - name: browser-ui
+        image: {{ include "zgw-posix.browserUi.image" . }}
+        imagePullPolicy: {{ .Values.browserUi.image.ui.pullPolicy }}
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "zgw-posix.fullname" . }}-user
+              key: ACCESS_KEY
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "zgw-posix.fullname" . }}-user
+              key: SECRET_KEY
+        - name: REGION
+          value: "default"
+        - name: ENDPOINT
+          value: "http://{{ .Values.browserUi.ingress.proxyHost }}"
+        resources:
+          {{- toYaml .Values.browserUi.resources.ui | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      - name: cors-proxy
+        image: "{{ .Values.browserUi.image.proxy.repository }}:{{ .Values.browserUi.image.proxy.tag }}"
+        imagePullPolicy: {{ .Values.browserUi.image.proxy.pullPolicy }}
+        ports:
+        - containerPort: 8081
+          name: s3-proxy
+          protocol: TCP
+        resources:
+          {{- toYaml .Values.browserUi.resources.proxy | nindent 10 }}
+        volumeMounts:
+        - name: nginx-config-volume
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+      volumes:
+      - name: nginx-config-volume
+        configMap:
+          name: {{ include "zgw-posix.fullname" . }}-browser-nginx-config
+{{- end }}
+
+# Made with Bob

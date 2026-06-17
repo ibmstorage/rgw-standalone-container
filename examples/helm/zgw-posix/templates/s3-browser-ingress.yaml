@@ -1,0 +1,40 @@
+{{- if and .Values.browserUi.enabled .Values.browserUi.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "zgw-posix.fullname" . }}-browser-ui
+  labels:
+    {{- include "zgw-posix.labels" . | nindent 4 }}
+    app.kubernetes.io/component: browser-ui
+  {{- with .Values.browserUi.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.browserUi.ingress.className }}
+  ingressClassName: {{ .Values.browserUi.ingress.className }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.browserUi.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "zgw-posix.fullname" . }}-browser-ui-svc
+                port:
+                  name: http
+    - host: {{ .Values.browserUi.ingress.proxyHost }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "zgw-posix.fullname" . }}-browser-ui-svc
+                port:
+                  name: s3-proxy
+{{- end }}
+
+# Made with Bob

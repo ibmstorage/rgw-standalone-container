@@ -1,0 +1,48 @@
+{{- if .Values.browserUi.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "zgw-posix.fullname" . }}-browser-nginx-config
+  labels:
+    {{- include "zgw-posix.labels" . | nindent 4 }}
+    app.kubernetes.io/component: browser-ui
+data:
+  default.conf: |
+    server {
+        listen 8081;
+        server_name localhost;
+        client_max_body_size {{ .Values.browserUi.proxy.clientMaxBodySize }};
+
+        location / {
+            # Handle browser CORS Preflight checks
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' '*' always;
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, HEAD, OPTIONS' always;
+                add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,Amz-Sdk-Invocation-Id,Amz-Sdk-Request,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Amz-Target,x-amz-user-agent,x-amz-sdk-checksum-algorithm,x-amz-checksum-crc32,x-amz-bucket-object-lock-enabled,x-amz-tagging' always;
+                add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range,ETag,Amz-Request-Id,Amz-Id-2,X-Amz-Request-Id,X-Amz-Id-2' always;
+                add_header 'Access-Control-Max-Age' 1728000;
+                add_header 'Content-Type' 'text/plain; charset=utf-8';
+                add_header 'Content-Length' 0;
+                return 204;
+            }
+
+            # Add CORS headers to the actual S3 responses
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, HEAD, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,Amz-Sdk-Invocation-Id,Amz-Sdk-Request,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Amz-Target,x-amz-user-agent,x-amz-sdk-checksum-algorithm,x-amz-checksum-crc32,x-amz-bucket-object-lock-enabled,x-amz-tagging' always;
+            add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range,ETag,Amz-Request-Id,Amz-Id-2,X-Amz-Request-Id,X-Amz-Id-2' always;
+            
+            # Proxy to the zgw-posix backend service
+            proxy_pass http://{{ .Values.service.name | default (include "zgw-posix.fullname" .) }}:{{ .Values.service.port | default 80 }};
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            
+            # Ensure Auth headers survive the jump
+            proxy_set_header Authorization $http_authorization;
+            proxy_pass_header Authorization;
+        }
+    }
+{{- end }}
+
+# Made with Bob

@@ -203,6 +203,52 @@ helm install zgw-posix examples/helm/zgw-posix \
 
 To use custom S3 credentials, see [S3 Credentials](#s3-credentials).
 
+### S3 Browser UI (Optional)
+
+The Helm chart includes an optional web-based S3 Browser UI with an integrated NGINX CORS proxy. Enable it during installation:
+
+```bash
+helm install zgw-posix examples/helm/zgw-posix \
+  --namespace zgw --create-namespace \
+  --set browserUi.enabled=true \
+  --set browserUi.registry.server=cp.stg.icr.io \
+  --set browserUi.ingress.host=object-browser.example.com \
+  --set browserUi.ingress.proxyHost=s3-api.example.com
+```
+
+Or use the deployment script with custom registry credentials:
+
+```bash
+./scripts/deploy-cluster.sh deploy \
+  --registry cp.stg.icr.io \
+  --uname your-username \
+  --password your-password
+```
+
+The script automatically:
+- Detects your cluster type (OpenShift vs Kubernetes)
+- Creates the required image pull secret
+- Deploys both the backend and UI
+- Provides access instructions with Ingress URLs
+
+**Access the UI:**
+1. Configure DNS or add entries to `/etc/hosts`:
+   ```
+   <cluster-ip> object-browser.example.com s3-api.example.com
+   ```
+2. Open `http://object-browser.example.com` in your browser
+3. The UI is pre-configured with:
+   - S3 Endpoint: `http://s3-api.example.com`
+   - Credentials: `zippy` / `zippy` (or your custom credentials)
+
+**For local testing without Ingress:**
+```bash
+kubectl port-forward -n zgw svc/zgw-local-zgw-posix-browser-ui-svc 8080:80 8081:8081
+```
+Then access:
+- UI: `http://localhost:8080`
+- S3 API: `http://localhost:8081`
+
 ### Verify
 
 ```bash
@@ -214,6 +260,9 @@ kubectl -n zgw wait --for=condition=ready pod -l app.kubernetes.io/name=zgw-posi
 
 ```bash
 helm uninstall zgw-posix --namespace zgw
+
+# Or use the cleanup script
+./scripts/deploy-cluster.sh cleanup
 ```
 
 ---

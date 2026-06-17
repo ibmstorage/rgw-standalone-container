@@ -1,0 +1,25 @@
+{{- if .Values.browserUi.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "zgw-posix.fullname" . }}-browser-ui-svc
+  labels:
+    {{- include "zgw-posix.labels" . | nindent 4 }}
+    app.kubernetes.io/component: browser-ui
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "zgw-posix.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: browser-ui
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+      name: http
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+      name: s3-proxy
+{{- end }}
+
+# Made with Bob
