@@ -45,8 +45,8 @@ apply_quotas() {
     local args=(quota set --uid="${uid}" --quota-scope=user)
     [[ -n "${RGW_USER_QUOTA_MAX_SIZE:-}" ]]    && args+=(--max-size="${RGW_USER_QUOTA_MAX_SIZE}")
     [[ -n "${RGW_USER_QUOTA_MAX_OBJECTS:-}" ]] && args+=(--max-objects="${RGW_USER_QUOTA_MAX_OBJECTS}")
-    radosgw-admin -c "${CEPH_CONF}" "${args[@]}"
-    radosgw-admin -c "${CEPH_CONF}" quota enable --uid="${uid}" --quota-scope=user
+    rgw-standalone-admin -c "${CEPH_CONF}" "${args[@]}"
+    rgw-standalone-admin -c "${CEPH_CONF}" quota enable --uid="${uid}" --quota-scope=user
   fi
 
   # Bucket quota — per bucket
@@ -55,8 +55,8 @@ apply_quotas() {
     local args=(quota set --uid="${uid}" --quota-scope=bucket)
     [[ -n "${RGW_BUCKET_QUOTA_MAX_SIZE:-}" ]]    && args+=(--max-size="${RGW_BUCKET_QUOTA_MAX_SIZE}")
     [[ -n "${RGW_BUCKET_QUOTA_MAX_OBJECTS:-}" ]] && args+=(--max-objects="${RGW_BUCKET_QUOTA_MAX_OBJECTS}")
-    radosgw-admin -c "${CEPH_CONF}" "${args[@]}"
-    radosgw-admin -c "${CEPH_CONF}" quota enable --uid="${uid}" --quota-scope=bucket
+    rgw-standalone-admin -c "${CEPH_CONF}" "${args[@]}"
+    rgw-standalone-admin -c "${CEPH_CONF}" quota enable --uid="${uid}" --quota-scope=bucket
   fi
 }
 
@@ -67,10 +67,10 @@ create_default_user() {
   local desired_access="${AWS_ACCESS_KEY_ID:-zippy}"
   local desired_secret="${AWS_SECRET_ACCESS_KEY:-zippy}"
 
-  if ! radosgw-admin -c "${CEPH_CONF}" user info --uid=zippy &>/dev/null; then
+  if ! rgw-standalone-admin -c "${CEPH_CONF}" user info --uid=zippy &>/dev/null; then
     # User doesn't exist — create it fresh
     set +e
-    radosgw-admin -c "${CEPH_CONF}" user create \
+    rgw-standalone-admin -c "${CEPH_CONF}" user create \
       --uid zippy \
       --display-name zippy \
       --access-key "${desired_access}" \
@@ -81,7 +81,7 @@ create_default_user() {
     # IMPORTANT: We never delete the user, only rotate keys, to preserve all
     # bucket data when PVs are reused or the container is restarted.
     local user_info current_access current_secret
-    user_info=$(radosgw-admin -c "${CEPH_CONF}" user info --uid=zippy 2>/dev/null)
+    user_info=$(rgw-standalone-admin -c "${CEPH_CONF}" user info --uid=zippy 2>/dev/null)
 
     current_access=$(echo "${user_info}" \
       | python3 -c "import sys,json; keys=json.load(sys.stdin).get('keys',[]); print(keys[0]['access_key'] if keys else '')" \
@@ -95,7 +95,7 @@ create_default_user() {
       set +e
       # Add/update the desired key pair (key create is idempotent: updates secret
       # if the access key already exists, or adds a new key pair if it doesn't).
-      radosgw-admin -c "${CEPH_CONF}" key create \
+      rgw-standalone-admin -c "${CEPH_CONF}" key create \
         --uid zippy \
         --access-key "${desired_access}" \
         --secret-key "${desired_secret}"
@@ -103,7 +103,7 @@ create_default_user() {
       # If the access key itself changed, remove the old one so only the new
       # key is active. The user and all their bucket data remain intact.
       if [[ "${current_access}" != "${desired_access}" && -n "${current_access}" ]]; then
-        radosgw-admin -c "${CEPH_CONF}" key rm \
+        rgw-standalone-admin -c "${CEPH_CONF}" key rm \
           --uid zippy \
           --access-key "${current_access}"
       fi
@@ -114,7 +114,7 @@ create_default_user() {
   # Apply quotas if configured via environment variables
   apply_quotas zippy
 
-  # Fix ownership of LMDB files created by radosgw-admin (runs as root).
+  # Fix ownership of LMDB files created by rgw-standalone-admin (runs as root).
   # Without this, radosgw (running as ceph) cannot access the POSIX filter's
   # LMDB databases and the filter silently fails to load.
   chown -R ceph:ceph "${RGW_POSIX_BASE_PATH}" "${RGW_POSIX_DATABASE_ROOT}" 2>/dev/null || true
@@ -136,7 +136,7 @@ case "${COMPONENT}" in
       echo "RGW frontend: HTTP on 7480, HTTPS on 7443 (cert: ${RGW_TLS_CERT_PATH:-/etc/ceph/tls/tls.crt})"
     fi
 
-    exec /usr/bin/radosgw \
+    exec /usr/bin/rgw-standalone \
       -c "${CEPH_CONF}" \
       --cluster ceph \
       --setuser ceph \
