@@ -2,8 +2,8 @@ FROM registry.redhat.io/ubi10/ubi-minimal:latest
 
 USER root
 
-# Copy entire submodule once
-COPY zgw-posix /opt/zgw-posix
+# Copy repo content
+COPY . /opt/zgw-posix
 WORKDIR /opt/zgw-posix/
 
 # Register with subscription manager
@@ -47,8 +47,8 @@ RUN microdnf install -y --enablerepo=IBM-CEPH \
     --setopt=install_weak_deps=0 \
     ceph-rgw-standalone
 
-# Copy files from submodule
-COPY zgw-posix/docker/zgw-posix/ceph.conf /etc/ceph/ceph.conf
+# Copy config files
+COPY docker/zgw-posix/ceph.conf /etc/ceph/ceph.conf
 RUN chown ceph:ceph /etc/ceph/ceph.conf \
     && chown -R ceph:ceph /var/lib/ceph/radosgw
 
@@ -60,7 +60,7 @@ ENV RGW_POSIX_BASE_PATH=/var/lib/ceph/rgw_posix_driver \
     RGW_POSIX_DATABASE_ROOT=/var/lib/ceph/rgw_posix_db \
     HOME=/home/ceph
 
-COPY zgw-posix/docker/zgw-posix/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker/zgw-posix/entrypoint.sh /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # NOTE: This is a initial draft! may require changes

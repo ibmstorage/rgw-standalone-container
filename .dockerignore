@@ -1,0 +1,9 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+README.md
+TODO.md
+docs/
+notebooks/
+examples/
