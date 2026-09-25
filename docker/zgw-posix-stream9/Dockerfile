@@ -60,9 +60,11 @@ RUN mkdir -p /etc/ceph \
              /var/lib/ceph/radosgw \
              /var/lib/ceph/rgw_posix_driver \
              /var/lib/ceph/rgw_posix_db \
+             /var/run/ceph \
              /home/ceph/.aws \
     && chown -R ceph:ceph /etc/ceph \
                           /var/lib/ceph \
+                          /var/run/ceph \
                           /home/ceph
 
 COPY ceph.conf /etc/ceph/ceph.conf
