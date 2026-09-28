@@ -53,8 +53,10 @@ RUN chown ceph:ceph /etc/ceph/ceph.conf \
     && chown -R ceph:ceph /var/lib/ceph/radosgw
 
 # Create home directory for ceph user
-RUN mkdir -p /home/ceph/.aws \
-    && chown -R ceph:ceph /home/ceph
+RUN mkdir -p /var/run/ceph \
+             /home/ceph/.aws \
+    && chown -R ceph:ceph /var/run/ceph \
+                          /home/ceph
 
 ENV RGW_POSIX_BASE_PATH=/var/lib/ceph/rgw_posix_driver \
     RGW_POSIX_DATABASE_ROOT=/var/lib/ceph/rgw_posix_db \
