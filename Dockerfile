@@ -12,10 +12,6 @@ RUN --mount=type=secret,id=org-id --mount=type=secret,id=activation-key subscrip
 RUN subscription-manager repos --enable=codeready-builder-for-rhel-10-$(arch)-rpms
 #======================================================
 
-# Install AWS CLI for in-container debugging
-RUN microdnf install -y awscli unzip \
-    && microdnf clean all
-
 RUN rm -f /etc/yum.repos.d/ubi.repo
 COPY ceph.repo /etc/yum.repos.d
 
